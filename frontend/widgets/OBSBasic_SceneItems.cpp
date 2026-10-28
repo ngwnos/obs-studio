@@ -30,6 +30,7 @@
 #include <qt-wrappers.hpp>
 
 #include <QWidgetAction>
+#include <QActionGroup>
 
 #include <sstream>
 
@@ -711,6 +712,38 @@ void OBSBasic::CreateSourcePopupMenu(int idx, bool preview)
 
 			if (width < 32 || height < 32) {
 				resizeOutput->setEnabled(false);
+			}
+
+			if (obs_sceneitem_get_scene(sceneItem) == GetCurrentScene() &&
+			    !obs_sceneitem_is_group(sceneItem)) {
+				OBSDataAutoRelease settings = obs_sceneitem_get_private_settings(sceneItem);
+				int mode = (int)obs_data_get_int(settings, "recording_size_mode");
+				bool matching = mode != 0;
+				QMenu *matchMenu = popup.addMenu(QTStr("RecordingSize"));
+				matchMenu->setEnabled(!Active() && !obs_video_active() && !streamingStarting);
+				QActionGroup *modes = new QActionGroup(matchMenu);
+				auto addMode = [&](const char *label, int value, bool checked) {
+					QAction *action = matchMenu->addAction(QTStr(label));
+					action->setCheckable(true);
+					action->setChecked(checked);
+					modes->addAction(action);
+					OBSSceneItem item = sceneItem;
+					connect(action, &QAction::triggered, this,
+						[this, item, value] { SetRecordingSizeSource(item, value); });
+				};
+				addMode("RecordingSize.Off", 0, !matching);
+				const char *sourceId = obs_source_get_unversioned_id(source);
+				OBSDataAutoRelease captureSettings = obs_source_get_settings(source);
+				bool window = strcmp(sourceId, "window_capture") == 0 ||
+					      (strcmp(sourceId, "screen_capture") == 0 &&
+					       obs_data_get_int(captureSettings, "type") == 1);
+				addMode(window ? "RecordingSize.Window" : "RecordingSize.Source", 1,
+					matching && mode == 1);
+#ifdef __APPLE__
+				if (strcmp(sourceId, "screen_capture") == 0 && window) {
+					addMode("RecordingSize.ChromePage", 2, matching && mode == 2);
+				}
+#endif
 			}
 		}
 

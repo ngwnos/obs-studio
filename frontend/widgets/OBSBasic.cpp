@@ -138,6 +138,9 @@ OBSBasic::OBSBasic(QWidget *parent) : OBSMainWindow(parent), undo_s(ui), ui(new 
 
 	ui->setupUi(this);
 	ui->previewDisabledWidget->setVisible(false);
+	recordingSizeTimer = new QTimer(this);
+	connect(recordingSizeTimer, &QTimer::timeout, this, [this] { UpdateRecordingSize(); });
+	recordingSizeTimer->start(1000);
 
 	/* Set up streaming connections */
 	connect(

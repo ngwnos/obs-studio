@@ -688,6 +688,8 @@ private:
 private:
 	std::unique_ptr<BasicOutputHandler> outputHandler;
 	std::optional<std::pair<uint32_t, uint32_t>> lastOutputResolution;
+	QPointer<QTimer> recordingSizeTimer;
+	std::optional<std::pair<uint32_t, uint32_t>> pendingRecordingSize;
 
 	int disableOutputsRef = 0;
 
@@ -788,6 +790,8 @@ public:
 
 private slots:
 	void ResizeOutputSizeOfSource();
+	bool UpdateRecordingSize(bool notify = false);
+	void SetRecordingSizeSource(OBSSceneItem item, int mode);
 
 private slots:
 	void on_actionOpenPluginManager_triggered();

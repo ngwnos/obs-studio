@@ -1,5 +1,35 @@
 #include "mac-sck-common.h"
+#include "mac-chrome-page-region.h"
 #include "window-utils.h"
+
+API_AVAILABLE(macos(12.5)) static void sck_get_chrome_page_region(void *data, calldata_t *params)
+{
+    struct screen_capture *sc = data;
+    struct chrome_page_region region = {.error = "unsupported"};
+    obs_data_t *settings = obs_source_get_settings(sc->source);
+    if (obs_data_get_int(settings, "type") == ScreenCaptureWindowStream) {
+        CGWindowID window = (CGWindowID) obs_data_get_int(settings, "window");
+        pthread_mutex_lock(&sc->mutex);
+        uint32_t width = (uint32_t) sc->frame.size.width;
+        uint32_t height = (uint32_t) sc->frame.size.height;
+        pthread_mutex_unlock(&sc->mutex);
+        region = chrome_page_region_get(window, width, height);
+    }
+    obs_data_release(settings);
+
+    calldata_set_bool(params, "supported", region.supported);
+    calldata_set_bool(params, "valid", region.valid);
+    calldata_set_string(params, "error", region.error);
+    calldata_set_int(params, "left", region.crop.left);
+    calldata_set_int(params, "top", region.crop.top);
+    calldata_set_int(params, "right", region.crop.right);
+    calldata_set_int(params, "bottom", region.crop.bottom);
+}
+
+static void sck_request_chrome_page_access(void *data __unused, calldata_t *params __unused)
+{
+    chrome_page_region_request_access();
+}
 
 API_AVAILABLE(macos(12.5)) static void destroy_screen_stream(struct screen_capture *sc)
 {
@@ -313,6 +343,13 @@ API_AVAILABLE(macos(12.5)) static void *sck_video_capture_create(obs_data_t *set
 
     if (!init_screen_stream(sc))
         goto fail;
+
+    proc_handler_t *ph = obs_source_get_proc_handler(source);
+    proc_handler_add(ph,
+                     "void get_chrome_page_region(out bool supported, out bool valid, out string error, "
+                     "out int left, out int top, out int right, out int bottom)",
+                     sck_get_chrome_page_region, sc);
+    proc_handler_add(ph, "void request_chrome_page_access()", sck_request_chrome_page_access, sc);
 
     return sc;
 

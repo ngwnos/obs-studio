@@ -129,6 +129,10 @@ void OBSBasic::StartRecording()
 		return;
 	}
 
+	if (!UpdateRecordingSize(true)) {
+		return;
+	}
+
 	OnEvent(OBS_FRONTEND_EVENT_RECORDING_STARTING);
 
 	SaveProject();

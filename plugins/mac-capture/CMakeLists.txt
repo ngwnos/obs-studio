@@ -9,6 +9,8 @@ target_sources(
     audio-device-enum.c
     audio-device-enum.h
     mac-audio.c
+    mac-chrome-page-region.h
+    mac-chrome-page-region.m
     mac-display-capture.m
     mac-sck-audio-capture.m
     mac-sck-common.h
@@ -24,6 +26,7 @@ target_link_libraries(
   mac-capture
   PRIVATE
     OBS::libobs
+    "$<LINK_LIBRARY:FRAMEWORK,ApplicationServices.framework>"
     "$<LINK_LIBRARY:FRAMEWORK,AudioUnit.framework>"
     "$<LINK_LIBRARY:FRAMEWORK,Cocoa.framework>"
     "$<LINK_LIBRARY:FRAMEWORK,CoreAudio.framework>"
